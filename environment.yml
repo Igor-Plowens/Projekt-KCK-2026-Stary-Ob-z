@@ -7,16 +7,10 @@ dependencies:
   - pip
 
   - pip:
-      # core
       - numpy==2.4.4
       - opencv-python==4.13.0.92
       - python-dotenv==1.2.2
 
-      # Qt runtime (spójna wersja)
       - pyqt6==6.11.0
       - pyqt6-qt6==6.11.0
       - pyqt6-sip==13.11.1
-
-      # Designer stack (UWAGA: zostaje 6.4.x)
-      - pyqt6-tools==6.4.2.3.3
-      - pyqt6-plugins==6.4.2.2.3

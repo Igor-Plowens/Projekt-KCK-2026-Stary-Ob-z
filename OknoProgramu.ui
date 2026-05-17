@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1278</width>
+    <height>715</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -29,6 +29,30 @@
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <widget class="QWidget" name="overlay" native="true"/>
+      </item>
+      <item>
+       <widget class="QFrame" name="frameStatsTL">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QFrame {
+    background-color: rgba(0, 0, 0, 120);
+    color: white;
+    border-radius: 10px;
+    padding: 8px;
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::Shape::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Shadow::Raised</enum>
+        </property>
+       </widget>
+      </item>
       <item>
        <widget class="QGraphicsView" name="graphicsView"/>
       </item>
