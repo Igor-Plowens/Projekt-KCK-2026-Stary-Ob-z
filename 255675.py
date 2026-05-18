@@ -16,10 +16,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setupUi(self)
 
         self.scene = QGraphicsScene()
-        self.graphicsView.setScene(self.scene)
+        self.KameraLewa.setScene(self.scene)
 
         self.scene2 = QGraphicsScene()
-        self.graphicsView_2.setScene(self.scene2)
+        self.KameraPrawa.setScene(self.scene2)
 
         # kamera 1
         self.cap = cv2.VideoCapture(0)
@@ -48,12 +48,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def update_frame(self):
         ret, frame = self.cap.read()
         if ret:
-            self.show_frame(frame, self.graphicsView, self.scene)
+            self.show_frame(frame, self.KameraLewa, self.scene)
 
         if second_camera and self.cap2:
             ret2, frame2 = self.cap2.read()
             if ret2:
-                self.show_frame(frame2, self.graphicsView_2, self.scene2)
+                self.show_frame(frame2, self.KameraPrawa, self.scene2)
 
     def show_frame(self, frame, view, scene):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
