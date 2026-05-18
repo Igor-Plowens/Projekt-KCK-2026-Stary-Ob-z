@@ -1,180 +1,274 @@
 import sqlite3
-from contextlib import closing
 
 
 class CyberTrainerDB:
     def __init__(self, db_path="cybertrainer.db"):
         self.conn = sqlite3.connect(db_path)
+        self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
+
         self.create_tables()
+
+    # =====================================================
+    # TABLES
+    # =====================================================
 
     def create_tables(self):
         self.conn.executescript("""
-        CREATE TABLE IF NOT EXISTS exercises (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+        CREATE TABLE IF NOT EXISTS exercise_categories (
+            exercise_type_id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE,
             description TEXT
         );
 
-        CREATE TABLE IF NOT EXISTS trainings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            training_date TEXT NOT NULL,
-            total_time_seconds INTEGER,
-            notes TEXT
-        );
+        CREATE TABLE IF NOT EXISTS exercises (
+            exercise_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            exercise_type_id INTEGER NOT NULL,
+            duration_in_seconds INTEGER NOT NULL,
+            successful BOOLEAN NOT NULL,
 
-        CREATE TABLE IF NOT EXISTS sprints (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            training_id INTEGER NOT NULL,
-            sprint_order INTEGER NOT NULL,
-
-            FOREIGN KEY (training_id)
-                REFERENCES trainings(id)
+            FOREIGN KEY (exercise_type_id)
+                REFERENCES exercise_categories(exercise_type_id)
                 ON DELETE CASCADE
         );
 
-        CREATE TABLE IF NOT EXISTS activity_series (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sprint_id INTEGER NOT NULL,
-            series_order INTEGER NOT NULL,
-
-            FOREIGN KEY (sprint_id)
-                REFERENCES sprints(id)
-                ON DELETE CASCADE
+        CREATE TABLE IF NOT EXISTS series (
+            series_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            description TEXT
         );
 
-        CREATE TABLE IF NOT EXISTS activities (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
+        CREATE TABLE IF NOT EXISTS series_exercises (
             series_id INTEGER NOT NULL,
+            exercise_index INTEGER NOT NULL,
             exercise_id INTEGER NOT NULL,
 
-            quantity INTEGER NOT NULL,
-            duration_seconds INTEGER DEFAULT 0,
+            PRIMARY KEY (
+                series_id,
+                exercise_index
+            ),
 
             FOREIGN KEY (series_id)
-                REFERENCES activity_series(id)
+                REFERENCES series(series_id)
                 ON DELETE CASCADE,
 
             FOREIGN KEY (exercise_id)
-                REFERENCES exercises(id)
+                REFERENCES exercises(exercise_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS trainings (
+            training_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            training_date TEXT NOT NULL,
+            notes TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS training_series (
+            training_id INTEGER NOT NULL,
+            series_index INTEGER NOT NULL,
+            series_id INTEGER NOT NULL,
+
+            PRIMARY KEY (
+                training_id,
+                series_index,
+                series_id
+            ),
+
+            FOREIGN KEY (training_id)
+                REFERENCES trainings(training_id)
+                ON DELETE CASCADE,
+
+            FOREIGN KEY (series_id)
+                REFERENCES series(series_id)
+                ON DELETE CASCADE
         );
         """)
 
         self.conn.commit()
 
-    def add_exercise(self, name, description=""):
-        cur = self.conn.execute(
-            """
-            INSERT INTO exercises(name, description)
+    # =====================================================
+    # CATEGORY API
+    # =====================================================
+
+    def create_category(self, name, description=""):
+        cur = self.conn.execute("""
+            INSERT INTO exercise_categories(
+                name,
+                description
+            )
             VALUES (?, ?)
-            """,
-            (name, description)
-        )
+        """, (name, description))
 
         self.conn.commit()
         return cur.lastrowid
 
-    def get_exercises(self):
-        cur = self.conn.execute(
-            "SELECT id, name, description FROM exercises"
-        )
+    # =====================================================
+    # EXERCISE API
+    # =====================================================
 
-        return cur.fetchall()
-
-
-    def create_training(self, date, total_time_seconds=0, notes=""):
-        cur = self.conn.execute(
-            """
-            INSERT INTO trainings(training_date, total_time_seconds, notes)
+    def create_exercise(
+        self,
+        exercise_type_id,
+        duration_in_seconds,
+        successful
+    ):
+        cur = self.conn.execute("""
+            INSERT INTO exercises(
+                exercise_type_id,
+                duration_in_seconds,
+                successful
+            )
             VALUES (?, ?, ?)
-            """,
-            (date, total_time_seconds, notes)
-        )
+        """, (
+            exercise_type_id,
+            duration_in_seconds,
+            successful
+        ))
 
         self.conn.commit()
         return cur.lastrowid
 
-    def add_sprint(self, training_id, sprint_order):
-        cur = self.conn.execute(
-            """
-            INSERT INTO sprints(training_id, sprint_order)
+    # =====================================================
+    # SERIES API
+    # =====================================================
+
+    def create_series(self, name="", description=""):
+        cur = self.conn.execute("""
+            INSERT INTO series(
+                name,
+                description
+            )
             VALUES (?, ?)
-            """,
-            (training_id, sprint_order)
-        )
+        """, (name, description))
 
         self.conn.commit()
         return cur.lastrowid
 
-    def add_series(self, sprint_id, series_order):
-        cur = self.conn.execute(
-            """
-            INSERT INTO activity_series(sprint_id, series_order)
-            VALUES (?, ?)
-            """,
-            (sprint_id, series_order)
-        )
-
-        self.conn.commit()
-        return cur.lastrowid
-
-    def add_activity(
+    def add_exercise_to_series(
         self,
         series_id,
-        exercise_id,
-        quantity,
-        duration_seconds=0
+        exercise_index,
+        exercise_id
     ):
-        cur = self.conn.execute(
-            """
-            INSERT INTO activities(
+        self.conn.execute("""
+            INSERT INTO series_exercises(
                 series_id,
-                exercise_id,
-                quantity,
-                duration_seconds
+                exercise_index,
+                exercise_id
             )
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                series_id,
-                exercise_id,
-                quantity,
-                duration_seconds
+            VALUES (?, ?, ?)
+        """, (
+            series_id,
+            exercise_index,
+            exercise_id
+        ))
+
+        self.conn.commit()
+
+    # =====================================================
+    # TRAINING API
+    # =====================================================
+
+    def create_training(self, training_date, notes=""):
+        cur = self.conn.execute("""
+            INSERT INTO trainings(
+                training_date,
+                notes
             )
-        )
+            VALUES (?, ?)
+        """, (
+            training_date,
+            notes
+        ))
 
         self.conn.commit()
         return cur.lastrowid
 
-    # ---------------------------
-    # Queries
-    # ---------------------------
+    def add_series_to_training(
+        self,
+        training_id,
+        series_index,
+        series_id
+    ):
+        self.conn.execute("""
+            INSERT INTO training_series(
+                training_id,
+                series_index,
+                series_id
+            )
+            VALUES (?, ?, ?)
+        """, (
+            training_id,
+            series_index,
+            series_id
+        ))
 
-    def get_training_activities(self, training_id):
+        self.conn.commit()
+
+    # =====================================================
+    # ANALYTICS DATA API
+    # =====================================================
+
+    def fetch_flat_training_data(self):
+        """
+        Flattened analytical dataset.
+        """
+
         cur = self.conn.execute("""
         SELECT
-            e.name,
-            a.quantity,
-            a.duration_seconds,
-            s.sprint_order,
-            ser.series_order
-        FROM activities a
-        JOIN exercises e
-            ON a.exercise_id = e.id
-        JOIN activity_series ser
-            ON a.series_id = ser.id
-        JOIN sprints s
-            ON ser.sprint_id = s.id
-        WHERE s.training_id = ?
-        ORDER BY
-            s.sprint_order,
-            ser.series_order
-        """, (training_id,))
+            t.training_id,
+            t.training_date,
 
-        return cur.fetchall()
+            ts.series_index,
+
+            s.series_id,
+            s.name AS series_name,
+
+            se.exercise_index,
+
+            e.exercise_id,
+            e.duration_in_seconds,
+            e.successful,
+
+            c.name AS category_name
+
+        FROM trainings t
+
+        JOIN training_series ts
+            ON t.training_id = ts.training_id
+
+        JOIN series s
+            ON ts.series_id = s.series_id
+
+        JOIN series_exercises se
+            ON s.series_id = se.series_id
+
+        JOIN exercises e
+            ON se.exercise_id = e.exercise_id
+
+        JOIN exercise_categories c
+            ON e.exercise_type_id = c.exercise_type_id
+
+        ORDER BY
+            t.training_date,
+            ts.series_index,
+            se.exercise_index
+        """)
+
+        return [dict(row) for row in cur.fetchall()]
+
+    def get_all_trainings(self):
+        cur = self.conn.execute("""
+            SELECT *
+            FROM trainings
+            ORDER BY training_date
+        """)
+
+        return [dict(row) for row in cur.fetchall()]
+
+    # =====================================================
+    # CLOSE
+    # =====================================================
 
     def close(self):
         self.conn.close()
-
-
