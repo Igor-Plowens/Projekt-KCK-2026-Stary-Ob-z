@@ -1,19 +1,14 @@
-from collections import defaultdict
-from datetime import datetime
-
+import db_engine as db
 import matplotlib.pyplot as plt
+from collections import defaultdict
+from datetime import datetime, timedelta
+import random
 
-from db_engine import CyberTrainerDB
 
 
 class CyberTrainerAnalytics:
     def __init__(self, db):
         self.db = db
-
-    # =====================================================
-    # GRAPH 1
-    # MONTHLY TRAINING COUNT
-    # =====================================================
 
     def plot_monthly_training_count(self):
         trainings = self.db.get_all_trainings()
@@ -45,10 +40,6 @@ class CyberTrainerAnalytics:
         plt.tight_layout()
         plt.show()
 
-    # =====================================================
-    # GRAPH 2
-    # MONTHLY SUCCESS RATE
-    # =====================================================
 
     def plot_monthly_success_rate(self):
         rows = self.db.fetch_flat_training_data()
@@ -102,10 +93,6 @@ class CyberTrainerAnalytics:
         plt.tight_layout()
         plt.show()
 
-    # =====================================================
-    # GRAPH 3
-    # MONTHLY TRAINING TIME
-    # =====================================================
 
     def plot_monthly_training_time(self):
         rows = self.db.fetch_flat_training_data()
@@ -128,10 +115,7 @@ class CyberTrainerAnalytics:
 
         plt.figure(figsize=(10, 5))
 
-        plt.bar(
-            months,
-            hours
-        )
+        plt.bar(months, hours)
 
         plt.title("Monthly Training Time")
         plt.xlabel("Month")
@@ -139,11 +123,6 @@ class CyberTrainerAnalytics:
 
         plt.tight_layout()
         plt.show()
-
-    # =====================================================
-    # GRAPH 4
-    # CATEGORY DISTRIBUTION
-    # =====================================================
 
     def plot_category_distribution(self):
         rows = self.db.fetch_flat_training_data()
@@ -220,10 +199,6 @@ class CyberTrainerAnalytics:
         plt.tight_layout()
         plt.show()
 
-    # =====================================================
-    # GRAPH 6
-    # DAILY ACTIVITY
-    # =====================================================
 
     def plot_daily_activity(self):
         trainings = self.db.get_all_trainings()
@@ -247,10 +222,7 @@ class CyberTrainerAnalytics:
 
         plt.figure(figsize=(14, 5))
 
-        plt.bar(
-            x,
-            y
-        )
+        plt.bar(x, y)
 
         plt.title("Daily Training Activity")
         plt.xlabel("Date")
@@ -260,12 +232,97 @@ class CyberTrainerAnalytics:
         plt.show()
 
 
-# =========================================================
-# DEMO
-# =========================================================
+
+def populate_demo_data(db):
+    existing = db.conn.execute("""
+        SELECT COUNT(*) AS count
+        FROM trainings
+    """).fetchone()["count"]
+
+    if existing > 0:
+        print("Database already contains data.")
+        return
+    categories = {
+        "Pompki": db.create_category(
+            "Pompki",
+            "Standardowe męskie pompki"
+        ),
+
+        "Brzuszki": db.create_category(
+            "Brzuszki",
+            "Standardowe brzuszki"
+        ),
+
+        "Podnoszenie ciężaru": db.create_category(
+            "Podnoszenie ciężaru",
+            "Standardowe podnoszenie ciężaru"
+        ),
+
+        "Przysiady": db.create_category(
+            "Przysiady",
+            "Standardowe przysiady"
+        )
+    }
+
+    start_date = datetime(2025, 1, 1)
+
+    for day_offset in range(180):
+        current_date = start_date + timedelta(days=day_offset)
+        if random.random() < 0.65:
+
+            training_id = db.create_training(
+                current_date.strftime("%Y-%m-%d"),
+                notes="Automated demo training"
+            )
+
+            for series_index in range(
+                random.randint(1, 3)
+            ):
+                series_id = db.create_series(
+                    name=f"Series {series_index + 1}",
+                    description="Generated series"
+                )
+
+                for exercise_index in range(
+                    random.randint(3, 8)
+                ):
+                    category_name = random.choice(
+                        list(categories.keys())
+                    )
+
+                    exercise_id = db.create_exercise(
+                        exercise_type_id=categories[
+                            category_name
+                        ],
+
+                        duration_in_seconds=random.randint(
+                            120,
+                            2400
+                        ),
+
+                        successful=random.random() < 0.75
+                    )
+
+                    db.add_exercise_to_series(
+                        series_id=series_id,
+                        exercise_index=exercise_index,
+                        exercise_id=exercise_id
+                    )
+
+                db.add_series_to_training(
+                    training_id=training_id,
+                    series_index=series_index,
+                    series_id=series_id
+                )
+
+    print("Demo data inserted.")
+
+
 
 if __name__ == "__main__":
-    db = CyberTrainerDB()
+    db = db.CyberTrainerDB()
+
+    populate_demo_data(db)
 
     analytics = CyberTrainerAnalytics(db)
 
