@@ -1,7 +1,7 @@
 import sys
 import cv2
 import mediapipe as mp
-from wideo import detect_letter
+from wideo import detect_letter, check_brak_pochylenia_lewo_prawo, check_brak_zgarbienia
 import time
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGraphicsScene
 from PyQt6.QtGui import QImage, QPixmap
@@ -68,12 +68,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         results = self.pose.process(rgb_frame)
 
         letter = ""
-
+        back_straight = False
+        glowa_niewysunieta = False
         # rysowanie szkieletu
         if results.pose_landmarks:
             landmarks = results.pose_landmarks.landmark
 
             letter = detect_letter(landmarks)
+            back_straight = check_brak_pochylenia_lewo_prawo(landmarks)
+            glowa_niewysunieta = check_brak_zgarbienia(landmarks)
 
             self.mp_drawing.draw_landmarks(
                 draw_frame,
@@ -103,6 +106,30 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 cv2.FONT_HERSHEY_SIMPLEX,
                 1,
                 (0, 255, 0),
+                3
+            )
+
+        if results.pose_landmarks:
+            status_text = "Plecy proste" if back_straight else "Wyprostuj plecy!"
+            status_color = (0, 255, 0) if back_straight else (0, 0, 255)
+            cv2.putText(
+                draw_frame,
+                status_text,
+                (30, 110),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                status_color,
+                3
+            )
+            status_text = "Głowa dobrze" if glowa_niewysunieta else "Cofnij głowę!"
+            status_color = (0, 255, 0) if glowa_niewysunieta else (0, 0, 255)
+            cv2.putText(
+                draw_frame,
+                status_text,
+                (30, 90),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                status_color,
                 3
             )
 
