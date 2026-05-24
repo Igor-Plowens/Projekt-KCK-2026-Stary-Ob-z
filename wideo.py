@@ -7,6 +7,7 @@ mp_pose = mp.solutions.pose
 history = deque(maxlen=5)
 
 
+
 def angle(a, b):
     dx = a.x - b.x
     dy = a.y - b.y
@@ -26,8 +27,7 @@ def is_diagonal_up(a, b, tolerance=40):
     # dopuszczalne kąty: 25–75 lub -155–-105
     return (25 < ang < 75) or (-155 < ang < -105)
 
-
-def detect_letter(landmarks):
+def pierwsze(landmarks, part):
     left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER]
     right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
     left_elbow = landmarks[mp_pose.PoseLandmark.LEFT_ELBOW]
@@ -36,6 +36,48 @@ def detect_letter(landmarks):
     right_wrist = landmarks[mp_pose.PoseLandmark.RIGHT_WRIST]
     left_hip = landmarks[mp_pose.PoseLandmark.LEFT_HIP]
     right_hip = landmarks[mp_pose.PoseLandmark.RIGHT_HIP]
+    left_knee = landmarks[mp_pose.PoseLandmark.LEFT_KNEE]
+    right_knee = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE]
+
+    if left_shoulder.visibility < 0.5 or right_shoulder.visibility < 0.5 or left_elbow.visibility < 0.5 or right_elbow.visibility < 0.5 or left_wrist.visibility < 0.5 or right_wrist.visibility < 0.5 or left_hip.visibility < 0.5 or right_hip.visibility < 0.5 or left_knee.visibility < 0.5 or right_knee.visibility < 0.5:
+        return "N"
+
+    if part == 1:
+        if (left_wrist.y > left_hip.y
+        and right_wrist.y > right_hip.y):
+            return "ok"
+        return "working on it"
+
+    if part == 2:
+       if right_knee.y<right_hip.y and left_knee.y<left_hip.y:
+            return "ok"
+       return "working on it"
+
+    if part == 3:
+        if (left_wrist.y > left_hip.y
+                and right_wrist.y > right_hip.y):
+            return "ok"
+        return "working on it"
+
+
+
+
+def start(landmarks, excercise, part):
+    left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER]
+    right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+    left_elbow = landmarks[mp_pose.PoseLandmark.LEFT_ELBOW]
+    right_elbow = landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW]
+    left_wrist = landmarks[mp_pose.PoseLandmark.LEFT_WRIST]
+    right_wrist = landmarks[mp_pose.PoseLandmark.RIGHT_WRIST]
+    left_hip = landmarks[mp_pose.PoseLandmark.LEFT_HIP]
+    right_hip = landmarks[mp_pose.PoseLandmark.RIGHT_HIP]
+    left_knee = landmarks[mp_pose.PoseLandmark.LEFT_KNEE]
+    right_knee = landmarks[mp_pose.PoseLandmark.RIGHT_KNEE]
+
+    if left_shoulder.visibility <0.5 or right_shoulder.visibility <0.5 or left_elbow.visibility <0.5 or right_elbow.visibility <0.5 or left_wrist.visibility <0.5 or right_wrist.visibility <0.5 or left_hip.visibility <0.5 or right_hip.visibility <0.5 or left_knee.visibility <0.5 or right_knee.visibility <0.5:
+        return "N"
+
+
 
     letter = ""
 
@@ -57,12 +99,14 @@ def detect_letter(landmarks):
 
 
     # Stop
-    sprawdzenie = (
+    stop = (
         left_half_down and right_half_up
     )
-    if sprawdzenie:
+    if stop:
         letter="S"
 
+    elif excercise == 1:
+        letter = pierwsze(landmarks,part)
 
 
 

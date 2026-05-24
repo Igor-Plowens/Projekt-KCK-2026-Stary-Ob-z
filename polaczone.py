@@ -1,7 +1,7 @@
 import sys
 import cv2
 import mediapipe as mp
-from wideo import detect_letter
+from wideo import start
 import time
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGraphicsScene
 from PyQt6.QtGui import QImage, QPixmap
@@ -31,6 +31,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
+        self.excercise = 1
+        self.part = 1
         if not self.cap.isOpened():
             print("Nie można otworzyć kamery 0")
             sys.exit()
@@ -73,7 +75,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if results.pose_landmarks:
             landmarks = results.pose_landmarks.landmark
 
-            letter = detect_letter(landmarks)
+            letter = start(landmarks,self.excercise,self.part)
 
             self.mp_drawing.draw_landmarks(
                 draw_frame,
@@ -95,7 +97,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 3
             )
 
-        elif letter == "N":
+        if letter == "N":
             cv2.putText(
                 draw_frame,
                 "Ustaw sie dobrze",
@@ -105,13 +107,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 (0, 255, 0),
                 3
             )
+        if letter == "working on it":
+            cv2.putText(
+                draw_frame,
+                f"etap: {self.part}",
+                (30, 60),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 255, 0),
+                3
+            )
+        if letter == "ok":
+            cv2.putText(
+                draw_frame,
+                "etap ukonczony",
+                (30, 60),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 255, 0),
+                3
+            )
+            self.part+=1
+            if self.part == 4:
+                self.part=1
 
         if letter == "S":
             if self.quitTimer is None:
                 self.quitTimer = time.time()
 
             elif time.time() - self.quitTimer >= 5:
-                print("Koniec")
+                sys.exit(app.exec())
         # tu sie kończy
 
         else:
