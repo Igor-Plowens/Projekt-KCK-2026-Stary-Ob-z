@@ -1,11 +1,13 @@
 import sys
+import os
 import cv2
 import mediapipe as mp
 from wideo import detect_letter, check_brak_pochylenia_lewo_prawo, check_brak_zgarbienia
 import time
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGraphicsScene
 from PyQt6.QtGui import QImage, QPixmap
-from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtCore import QTimer, Qt, QUrl
+from PyQt6.QtMultimedia import QSoundEffect
 
 from ui_okno import Ui_MainWindow  # <- wygenerowany plik
 
@@ -26,6 +28,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.scene2 = QGraphicsScene()
         self.KameraPrawa.setScene(self.scene2)
         self.quitTimer = None
+        self.sounds = {}
+        self.last_sound_name = None
+        self.last_sound_time = 0
+        self.sound_cooldown = 4
+        self.load_sounds()
         # kamera 1
         self.cap = cv2.VideoCapture(0)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
@@ -49,6 +56,40 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)
+
+    def load_sounds(self):
+        sounds_dir = os.path.join(os.path.dirname(__file__), "assets", "sounds")
+        sound_files = {
+            "back": "proste_plecy.wav",
+            "head": "glowa_do_tylu.wav",
+            "position": "popraw_pozycje.wav",
+        }
+
+        for name, filename in sound_files.items():
+            sound = QSoundEffect(self)
+            sound.setVolume(0.9)
+
+            path = os.path.join(sounds_dir, filename)
+            if os.path.exists(path):
+                sound.setSource(QUrl.fromLocalFile(path))
+            else:
+                print(f"Brak pliku dźwiękowego: {path}")
+
+            self.sounds[name] = sound
+
+    def play_posture_sound(self, sound_name):
+        now = time.time()
+
+        if now - self.last_sound_time < self.sound_cooldown:
+            return
+
+        sound = self.sounds.get(sound_name)
+        if sound is None or sound.source().isEmpty() or sound.isPlaying():
+            return
+
+        sound.play()
+        self.last_sound_name = sound_name
+        self.last_sound_time = now
 
     def update_frame(self):
         ret, frame = self.cap.read()
@@ -99,39 +140,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             )
 
         elif letter == "N":
-            cv2.putText(
-                draw_frame,
-                "Ustaw sie dobrze",
-                (30, 60),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1,
-                (0, 255, 0),
-                3
-            )
+            self.play_posture_sound("position")
 
         if results.pose_landmarks:
-            status_text = "Plecy proste" if back_straight else "Wyprostuj plecy!"
-            status_color = (0, 255, 0) if back_straight else (0, 0, 255)
-            cv2.putText(
-                draw_frame,
-                status_text,
-                (30, 110),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1,
-                status_color,
-                3
-            )
-            status_text = "Głowa dobrze" if glowa_niewysunieta else "Cofnij głowę!"
-            status_color = (0, 255, 0) if glowa_niewysunieta else (0, 0, 255)
-            cv2.putText(
-                draw_frame,
-                status_text,
-                (30, 90),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                1,
-                status_color,
-                3
-            )
+            if not back_straight:
+                self.play_posture_sound("back")
+            elif not glowa_niewysunieta:
+                self.play_posture_sound("head")
 
         if letter == "S":
             if self.quitTimer is None:

@@ -7,15 +7,15 @@ if (!(Test-Path $soundsDir)) {
 }
 
 $messages = @{
-#    "proste_plecy.wav"      = "Wyprostuj plecy"
-#    "glowa_do_tylu.wav"     = "Cofnij głowę"
-#    "kolana_nizej.wav"      = "Ugnij kolana"
-#    "wolniej.wav"           = "Wolniej"
-#    "zatrzymaj_ruch.wav"    = "Zatrzymaj ruch"
-#    "dobrze.wav"            = "Dobrze"
-#    "popraw_pozycje.wav"    = "Popraw pozycję"
-#    "brak_sylwetki.wav"     = "Nie widać całej sylwetki"
-#    "blad_kamery.wav"       = "Problem z kamerą"
+    "proste_plecy.wav"      = "Wyprostuj plecy"
+    "glowa_do_tylu.wav"     = "Przechyl głowę do tyłu" # microsoftowe rozpoznawanie mowy jest dziwne
+    "kolana_nizej.wav"      = "Ugnij kolana"
+    "wolniej.wav"           = "Wolniej"
+    "zatrzymaj_ruch.wav"    = "Zatrzymaj ruch"
+    "dobrze.wav"            = "Dobrze"
+    "popraw_pozycje.wav"    = "Popraw pozycję"
+    "brak_sylwetki.wav"     = "Nie widać całej sylwetki"
+    "blad_kamery.wav"       = "Problem z kamerą"
     "rozpoczecie_treningu_za_321.wav" = "Rozpoczęcie treningu za 3 ... 2 ... 1 ..."
 }
 
