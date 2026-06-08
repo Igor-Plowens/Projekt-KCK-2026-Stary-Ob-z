@@ -10,39 +10,35 @@ class CyberTrainerAnalytics:
     def __init__(self, db):
         self.db = db
 
-    def plot_monthly_training_count(self):
-        trainings = self.db.get_all_trainings()
+    def plot_monthly_attempts(self):
+        rows = self.db.fetch_attempt_data()
 
         monthly = defaultdict(int)
 
-        for training in trainings:
-            month = training["training_date"][:7]
+        for row in rows:
+            month = row["completed_at"][:7]
             monthly[month] += 1
 
-        months = sorted(monthly.keys())
-        totals = [monthly[m] for m in months]
+        months = sorted(monthly)
+
+        values = [monthly[m] for m in months]
 
         plt.figure(figsize=(10, 5))
 
         plt.plot(
             months,
-            totals,
-            marker="o",
-            linewidth=3
+            values,
+            marker="o"
         )
 
-        plt.title("Monthly Training Sessions")
-        plt.xlabel("Month")
-        plt.ylabel("Sessions")
-
+        plt.title("Monthly Exercise Attempts")
+        plt.ylabel("Attempts")
         plt.grid(True)
 
-        plt.tight_layout()
         plt.show()
 
-
     def plot_monthly_success_rate(self):
-        rows = self.db.fetch_flat_training_data()
+        rows = self.db.fetch_attempt_data()
 
         monthly = defaultdict(
             lambda: {
@@ -51,291 +47,358 @@ class CyberTrainerAnalytics:
             }
         )
 
+    def __init__(self, db):
+        self.db = db
+
+    def plot_monthly_activity(self):
+        rows = self.db.fetch_attempt_data()
+
+        monthly = defaultdict(int)
+
         for row in rows:
-            month = row["training_date"][:7]
+            month = row["started_at"][:7]
+            monthly[month] += 1
 
-            monthly[month]["total"] += 1
-
-            if row["successful"]:
-                monthly[month]["success"] += 1
-
-        months = sorted(monthly.keys())
-
-        success_rates = []
-
-        for month in months:
-            data = monthly[month]
-
-            rate = (
-                data["success"] /
-                data["total"]
-            ) * 100
-
-            success_rates.append(rate)
-
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=(10,5))
 
         plt.plot(
-            months,
-            success_rates,
-            marker="o",
-            linewidth=3
+            list(monthly.keys()),
+            list(monthly.values()),
+            marker="o"
         )
 
-        plt.title("Monthly Success Rate")
-        plt.xlabel("Month")
-        plt.ylabel("Success Rate (%)")
+        plt.title("Monthly Exercise Activity")
 
-        plt.ylim(0, 100)
-
-        plt.grid(True)
-
-        plt.tight_layout()
         plt.show()
 
+    def plot_exercise_distribution(self):
+        rows = self.db.fetch_attempt_data()
 
-    def plot_monthly_training_time(self):
-        rows = self.db.fetch_flat_training_data()
-
-        monthly_seconds = defaultdict(int)
-
-        for row in rows:
-            month = row["training_date"][:7]
-
-            monthly_seconds[month] += row[
-                "duration_in_seconds"
-            ]
-
-        months = sorted(monthly_seconds.keys())
-
-        hours = [
-            monthly_seconds[m] / 3600
-            for m in months
-        ]
-
-        plt.figure(figsize=(10, 5))
-
-        plt.bar(months, hours)
-
-        plt.title("Monthly Training Time")
-        plt.xlabel("Month")
-        plt.ylabel("Hours")
-
-        plt.tight_layout()
-        plt.show()
-
-    def plot_category_distribution(self):
-        rows = self.db.fetch_flat_training_data()
-
-        categories = defaultdict(int)
+        counts = defaultdict(int)
 
         for row in rows:
-            categories[row["category_name"]] += 1
+            counts[row["exercise_name"]] += 1
 
-        labels = list(categories.keys())
-        values = list(categories.values())
-
-        plt.figure(figsize=(8, 8))
+        plt.figure(figsize=(8,8))
 
         plt.pie(
-            values,
-            labels=labels,
+            counts.values(),
+            labels=counts.keys(),
             autopct="%1.1f%%"
         )
 
-        plt.title("Exercise Category Distribution")
+        plt.title(
+            "Exercise Distribution"
+        )
 
-        plt.tight_layout()
         plt.show()
 
-    # =====================================================
-    # GRAPH 5
-    # SUCCESS RATE BY CATEGORY
-    # =====================================================
+    def plot_success_rate(self):
+        rows = self.db.fetch_attempt_data()
 
-    def plot_success_by_category(self):
-        rows = self.db.fetch_flat_training_data()
-
-        categories = defaultdict(
-            lambda: {
-                "success": 0,
-                "total": 0
+        stats = defaultdict(
+            lambda:{
+                "success":0,
+                "total":0
             }
         )
 
         for row in rows:
-            cat = row["category_name"]
 
-            categories[cat]["total"] += 1
+            ex = row["exercise_name"]
+
+            stats[ex]["total"] += 1
 
             if row["successful"]:
-                categories[cat]["success"] += 1
+                stats[ex]["success"] += 1
 
         labels = []
-        success_rates = []
+        values = []
 
-        for cat, data in categories.items():
-            labels.append(cat)
+        for ex,data in stats.items():
 
-            rate = (
-                data["success"] /
+            labels.append(ex)
+
+            values.append(
+                data["success"]
+                /
                 data["total"]
-            ) * 100
+                * 100
+            )
 
-            success_rates.append(rate)
+        plt.figure(figsize=(12,5))
 
-        plt.figure(figsize=(10, 5))
+        plt.bar(labels, values)
+
+        plt.ylim(0,100)
+
+        plt.title(
+            "Success Rate By Exercise"
+        )
+
+        plt.show()
+
+    def plot_user_leaderboard(self):
+        rows = self.db.fetch_attempt_data()
+
+        totals = defaultdict(int)
+
+        for row in rows:
+            totals[row["username"]] += 1
+
+        users = sorted(
+            totals,
+            key=totals.get,
+            reverse=True
+        )
+
+        values = [
+            totals[u]
+            for u in users
+        ]
+
+        plt.figure(figsize=(12,5))
+
+        plt.bar(users, values)
+
+        plt.title(
+            "Most Active Users"
+        )
+
+        plt.ylabel(
+            "Exercise Attempts"
+        )
+
+        plt.show()
+
+    def plot_training_time(self):
+        rows = self.db.fetch_attempt_data()
+
+        totals = defaultdict(int)
+
+        for row in rows:
+
+            duration = (
+                row["duration_seconds"]
+                or 0
+            )
+
+            totals[
+                row["username"]
+            ] += duration
+
+        users = list(totals.keys())
+
+        hours = [
+            totals[u] / 3600
+            for u in users
+        ]
+
+        plt.figure(figsize=(12,5))
+
+        plt.bar(users, hours)
+
+        plt.title(
+            "Training Time By User"
+        )
+
+        plt.ylabel("Hours")
+
+        plt.show()
+
+    def plot_team_activity(self):
+        rows = self.db.fetch_team_stats()
+
+        labels = [
+            r["team_name"]
+            for r in rows
+        ]
+
+        values = [
+            r["attempts"]
+            for r in rows
+        ]
+
+        plt.figure(figsize=(8,5))
 
         plt.bar(
             labels,
-            success_rates
+            values
         )
 
-        plt.title("Success Rate By Category")
-        plt.ylabel("Success Rate (%)")
+        plt.title(
+            "Team Activity"
+        )
 
-        plt.ylim(0, 100)
-
-        plt.tight_layout()
         plt.show()
 
+def populate_demo_data(database):
 
-    def plot_daily_activity(self):
-        trainings = self.db.get_all_trainings()
-
-        daily = defaultdict(int)
-
-        for training in trainings:
-            daily[training["training_date"]] += 1
-
-        dates = sorted(daily.keys())
-
-        x = [
-            datetime.strptime(
-                d,
-                "%Y-%m-%d"
-            )
-            for d in dates
-        ]
-
-        y = [daily[d] for d in dates]
-
-        plt.figure(figsize=(14, 5))
-
-        plt.bar(x, y)
-
-        plt.title("Daily Training Activity")
-        plt.xlabel("Date")
-        plt.ylabel("Sessions")
-
-        plt.tight_layout()
-        plt.show()
-
-
-
-def populate_demo_data(db):
-    existing = db.conn.execute("""
-        SELECT COUNT(*) AS count
-        FROM trainings
-    """).fetchone()["count"]
-
-    if existing > 0:
-        print("Database already contains data.")
+    if database.conn.execute(
+        "SELECT COUNT(*) FROM users"
+    ).fetchone()[0]:
         return
-    categories = {
-        "Pompki": db.create_category(
-            "Pompki",
-            "Standardowe męskie pompki"
-        ),
 
-        "Brzuszki": db.create_category(
-            "Brzuszki",
-            "Standardowe brzuszki"
-        ),
+    users = []
 
-        "Podnoszenie ciężaru": db.create_category(
-            "Podnoszenie ciężaru",
-            "Standardowe podnoszenie ciężaru"
-        ),
+    for i in range(10):
 
-        "Przysiady": db.create_category(
-            "Przysiady",
-            "Standardowe przysiady"
+        cur = database.conn.execute("""
+        INSERT INTO users(
+            username,
+            display_name
         )
-    }
+        VALUES (?,?)
+        """, (
+            f"user{i}",
+            f"User {i}"
+        ))
 
-    start_date = datetime(2025, 1, 1)
+        users.append(
+            cur.lastrowid
+        )
 
-    for day_offset in range(180):
-        current_date = start_date + timedelta(days=day_offset)
-        if random.random() < 0.65:
+    red = database.conn.execute("""
+    INSERT INTO teams(name)
+    VALUES ('Red Team')
+    """).lastrowid
 
-            training_id = db.create_training(
-                current_date.strftime("%Y-%m-%d"),
-                notes="Automated demo training"
-            )
+    blue = database.conn.execute("""
+    INSERT INTO teams(name)
+    VALUES ('Blue Team')
+    """).lastrowid
 
-            for series_index in range(
-                random.randint(1, 3)
-            ):
-                series_id = db.create_series(
-                    name=f"Series {series_index + 1}",
-                    description="Generated series"
+    for user in users:
+
+        database.conn.execute("""
+        INSERT INTO team_members
+        VALUES (?,?)
+        """, (
+            random.choice(
+                [red, blue]
+            ),
+            user
+        ))
+
+    exercise_type = database.conn.execute("""
+    INSERT INTO exercise_types(name)
+    VALUES ('Bodyweight')
+    """).lastrowid
+
+    exercises = []
+
+    for name in [
+        "Pushups",
+        "Squats",
+        "Pullups",
+        "Running",
+        "Plank"
+    ]:
+
+        cur = database.conn.execute("""
+        INSERT INTO exercise_definitions(
+            exercise_type_id,
+            name
+        )
+        VALUES (?,?)
+        """, (
+            exercise_type,
+            name
+        ))
+
+        exercises.append(
+            cur.lastrowid
+        )
+
+    start = datetime(2025,1,1)
+
+    for day in range(180):
+
+        current = (
+            start +
+            timedelta(days=day)
+        )
+
+        for user in users:
+
+            if random.random() < 0.5:
+
+                cur = database.conn.execute("""
+                INSERT INTO training_sessions(
+                    user_id,
+                    started_at
                 )
+                VALUES (?,?)
+                """, (
+                    user,
+                    current.isoformat()
+                ))
 
-                for exercise_index in range(
-                    random.randint(3, 8)
+                session_id = cur.lastrowid
+
+                for _ in range(
+                    random.randint(3,8)
                 ):
-                    category_name = random.choice(
-                        list(categories.keys())
+
+                    database.conn.execute("""
+                    INSERT INTO exercise_attempts(
+                        session_id,
+                        exercise_definition_id,
+                        successful,
+                        duration_seconds,
+                        reps,
+                        weight_kg,
+                        distance_meters
                     )
-
-                    exercise_id = db.create_exercise(
-                        exercise_type_id=categories[
-                            category_name
-                        ],
-
-                        duration_in_seconds=random.randint(
-                            120,
-                            2400
+                    VALUES (?,?,?,?,?,?,?)
+                    """, (
+                        session_id,
+                        random.choice(
+                            exercises
                         ),
+                        random.random() < 0.9,
+                        random.randint(
+                            60,
+                            1800
+                        ),
+                        random.randint(
+                            5,
+                            50
+                        ),
+                        random.randint(
+                            0,
+                            100
+                        ),
+                        random.randint(
+                            0,
+                            5000
+                        )
+                    ))
 
-                        successful=random.random() < 0.75
-                    )
-
-                    db.add_exercise_to_series(
-                        series_id=series_id,
-                        exercise_index=exercise_index,
-                        exercise_id=exercise_id
-                    )
-
-                db.add_series_to_training(
-                    training_id=training_id,
-                    series_index=series_index,
-                    series_id=series_id
-                )
-
-    print("Demo data inserted.")
-
-
+    database.conn.commit()
 
 if __name__ == "__main__":
-    db = db.CyberTrainerDB()
 
-    populate_demo_data(db)
+    database = db.CyberTrainerDB()
 
-    analytics = CyberTrainerAnalytics(db)
+    populate_demo_data(
+        database
+    )
 
-    analytics.plot_monthly_training_count()
+    analytics = CyberTrainerAnalytics(
+        database
+    )
 
-    analytics.plot_monthly_success_rate()
+    analytics.plot_monthly_activity()
 
-    analytics.plot_monthly_training_time()
+    analytics.plot_exercise_distribution()
 
-    analytics.plot_category_distribution()
+    analytics.plot_success_rate()
 
-    analytics.plot_success_by_category()
+    analytics.plot_user_leaderboard()
 
-    analytics.plot_daily_activity()
+    analytics.plot_training_time()
 
-    db.close()
+    analytics.plot_team_activity()
+
+    database.close()
