@@ -22,6 +22,46 @@ def is_vertical(a, b, tolerance=0.12):
     return abs(a.x - b.x) < tolerance
 
 
+def check_brak_pochylenia_lewo_prawo(landmarks):
+    left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER]
+    right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
+    left_hip = landmarks[mp_pose.PoseLandmark.LEFT_HIP]
+    right_hip = landmarks[mp_pose.PoseLandmark.RIGHT_HIP]
+
+    # Sprawdzamy pionowość linii ramiona-biodra
+    left_side_vertical = is_vertical(left_shoulder, left_hip, 0.1)
+    right_side_vertical = is_vertical(right_shoulder, right_hip, 0.1)
+
+    # Sprawdzamy czy ramiona są w miarę poziomo
+    shoulders_horizontal = is_horizontal(left_shoulder, right_shoulder, 0.05)
+
+    return left_side_vertical and right_side_vertical and shoulders_horizontal
+
+def check_brak_zgarbienia(landmarks):
+    left_ear = landmarks[mp_pose.PoseLandmark.LEFT_EAR]
+    left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER]
+
+
+    # Sprawdzamy pionowość linii ucho-ramię
+    left_side_vertical = is_vertical(left_shoulder, left_ear, 0.1)
+
+
+    return left_side_vertical
+
+def check_zgiecie_kolan(landmarks):
+    pass
+
+def check_brak_skretu_tulowia(landmarks):
+    pass
+
+def check_podniesienie_przedmiotu_z_ziemi(landmarks):
+    check_brak_zgarbienia(landmarks) and check_brak_pochylenia_lewo_prawo(landmarks) and check_brak_skretu_tulowia(
+        landmarks) and check_zgiecie_kolan(landmarks)
+    pass
+
+
+
+
 def is_diagonal_up(a, b, tolerance=40):
     ang = angle(a, b)
     # dopuszczalne kąty: 25–75 lub -155–-105
