@@ -66,7 +66,8 @@ class Stany:
                  on_status_changed=None,
                  on_progress_changed=None,
                  on_result=None):
-        self.cwiczenia = cwiczenia or [Cwiczenie("Podnoszenie przedmiotu z podłogi", 3)]
+        self.cwiczenia = cwiczenia or [Cwiczenie("Podnoszenie przedmiotu z podłogi", 3,
+                                                 opis="Ugnij kolana, trzymaj plecy prosto i nie wysuwaj głowy do przodu.")]
         self.minimalny_procent_poprawnosci = minimalny_procent_poprawnosci
         self.wyniki_cwiczen = []
         self.index_cwiczenia = -1
@@ -76,6 +77,15 @@ class Stany:
         self.on_progress_changed = on_progress_changed
         self.on_result = on_result
         self.resetuj_liczniki()
+        self.ostatni_wynik = None
+        self.czas_startu_cwiczenia = None
+
+    @property
+    def wymagane_powtorzenia(self):
+        return self.aktualne_cwiczenie.wymagane_powtorzenia if self.aktualne_cwiczenie else 0
+
+    def start(self):
+        self.popros_o_przygotowanie_rekwizytow()
 
     def run(self):
         self.popros_o_przygotowanie_rekwizytow()
@@ -97,8 +107,6 @@ class Stany:
     def popros_o_przygotowanie_rekwizytow(self):
         self.stan = StanTreningu.PRZYGOTOWANIE
         self._status("Przygotuj miejsce do ćwiczeń, ustaw kamerę i stań w widocznym miejscu.")
-        # czekaj na zgłoszenie gotowości przez użytkownika
-        pass
 
     def potwierdz_gotowosc(self):
         self.pobierz_cwiczenie()
@@ -124,7 +132,7 @@ class Stany:
         self._status(
             f"Ćwiczenie: {self.aktualne_cwiczenie.nazwa}\n"
             f"{self.aktualne_cwiczenie.opis}\n"
-            f"Czas: {self.aktualne_cwiczenie.czas_trwania} s"
+            f"Powtórzenia: {self.aktualne_cwiczenie.wymagane_powtorzenia}"
         )
 
     def rozpocznij_cwiczenie(self):
