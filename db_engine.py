@@ -168,6 +168,22 @@ class CyberTrainerDB:
 
         return [dict(row) for row in cur.fetchall()]
 
+    def get_user_by_username(self, username):
+        cur = self.conn.execute(
+            """
+            SELECT user_id, username, display_name
+            FROM users
+            WHERE username = ?
+            """,
+            (username,)
+        )
+        row = cur.fetchone()
+
+        if row:
+            return dict(row)
+
+        return None
+
     def get_or_create_user(self, username, display_name=None):
         cur = self.conn.execute(
             "SELECT user_id FROM users WHERE username = ?",
@@ -198,12 +214,112 @@ class CyberTrainerDB:
         )
         return [dict(row) for row in cur.fetchall()]
 
-    def ensure_default_datw(self):
+    def get_or_create_exercise_type(self, name):
+        cur = self.conn.execute(
+            "SELECT exercise_type_id FROM exercise_types WHERE name = ?",
+            (name,)
+        )
+        row = cur.fetchone()
+
+        if row:
+            return row["exercise_type_id"]
+
+        cur = self.conn.execute(
+            "INSERT INTO exercise_types(name) VALUES (?)",
+            (name,)
+        )
+        self.conn.commit()
+
+        return cur.lastrowid
+
+    def get_or_create_exercise_definition(self, exercise_type_name, exercise_name):
+        exercise_type_id = self.get_or_create_exercise_type(exercise_type_name)
+
+        cur = self.conn.execute(
+            """
+            SELECT exercise_definition_id
+            FROM exercise_definitions
+            WHERE exercise_type_id = ?
+              AND name = ?
+            """,
+            (exercise_type_id, exercise_name)
+        )
+        row = cur.fetchone()
+
+        if row:
+            return row["exercise_definition_id"]
+
+        cur = self.conn.execute(
+            """
+            INSERT INTO exercise_definitions(exercise_type_id, name)
+            VALUES (?, ?)
+            """,
+            (exercise_type_id, exercise_name)
+        )
+        self.conn.commit()
+
+        return cur.lastrowid
+
+    def ensure_default_data(self):
         self.get_or_create_user("XYZ", "XYZ")
+
         self.get_or_create_exercise_definition(
             exercise_type_name="Podnoszenie przedmiotu",
             exercise_name="Podnoszenie przedmiotu z podłogi na stół",
         )
+
+    def create_training_session(self, user_id, notes="", started_at=None):
+        if started_at is None:
+            started_at = datetime.now().isoformat(timespec="seconds")
+        elif isinstance(started_at, datetime):
+            started_at = started_at.isoformat(timespec="seconds")
+
+        cur = self.conn.execute(
+            """
+            INSERT INTO training_sessions(user_id, started_at, notes)
+            VALUES (?, ?, ?)
+            """,
+            (user_id, started_at, notes)
+        )
+        self.conn.commit()
+
+        return cur.lastrowid
+
+    def add_exercise_attempt(
+            self,
+            session_id,
+            exercise_definition_id,
+            successful,
+            duration_seconds=None,
+            reps=None,
+            weight_kg=None,
+            distance_meters=None
+    ):
+        cur = self.conn.execute(
+            """
+            INSERT INTO exercise_attempts(session_id,
+                                          exercise_definition_id,
+                                          successful,
+                                          duration_seconds,
+                                          reps,
+                                          weight_kg,
+                                          distance_meters)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session_id,
+                exercise_definition_id,
+                1 if successful else 0,
+                duration_seconds,
+                reps,
+                weight_kg,
+                distance_meters
+            )
+        )
+        self.conn.commit()
+
+        return cur.lastrowid
+
 
 
 
