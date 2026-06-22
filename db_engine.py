@@ -167,5 +167,38 @@ class CyberTrainerDB:
 
         return [dict(row) for row in cur.fetchall()]
 
+    def get_or_create_user(self, username, display_name=None):
+        cur = self.conn.execute(
+            "SELECT user_id FROM users WHERE username = ?",
+            (username,)
+        )
+        row = cur.fetchone()
+
+        if row:
+            return row["user_id"]
+
+        return self.add_user(username, display_name or username)
+
+    def add_user(self, username, display_name=None):
+        cur = self.conn.execute(
+            "INSERT OR IGNORE INTO users(username, display_name) VALUES (?, ?)",
+            (username, display_name or username)
+        )
+        self.conn.commit()
+
+        if cur.lastrowid:
+            return cur.lastrowid
+
+        return self.get_or_create_user(username, display_name)
+
+    def fetch_users(self):
+        cur = self.conn.execute(
+            "SELECT user_id, username, display_name FROM users ORDER BY username"
+        )
+        return [dict(row) for row in cur.fetchall()]
+
+    def get_usernames(self):
+        return [row["username"] for row in self.fetch_users()]
+
     def close(self):
         self.conn.close()
