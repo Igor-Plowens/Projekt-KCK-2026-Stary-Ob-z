@@ -67,6 +67,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         }
 
         self.stop_gesture_started_at = None
+        self.start_gesture_started_at = None
+        self._starting_training_from_gesture = False
         self.exercise = 1
         self.part = 1
         self.last_ok_time = 0
@@ -434,6 +436,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.create_stany()
         self.latest_results = {"front": None, "side": None}
         self.stop_gesture_started_at = None
+        self.start_gesture_started_at = None
+        self._starting_training_from_gesture = False
         self.exercise = 1
         self.part = 1
         self.last_ok_time = 0
@@ -460,6 +464,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def show_menu(self):
         self.stop_camera(clear_scenes=False)
         self.latest_results = {"front": None, "side": None}
+        self.start_gesture_started_at = None
+        self._starting_training_from_gesture = False
         self.set_page("menu")
         self.start_menu_preview()
 
@@ -574,7 +580,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             stream_name="menu",
             camera_index=0,
             camera_role="front",
-            use_gesture=False,
+            use_gesture=True,
         )
         return True
 
@@ -640,6 +646,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.camera_workers.clear()
         self.camera_threads.clear()
         self.stop_gesture_started_at = None
+        self.start_gesture_started_at = None
 
         if clear_scenes:
             self.scene_menu.clear()
@@ -652,7 +659,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             view, scene = target
             self.show_frame(result.frame, view, scene)
 
-        if result.stream_name == "front":
+        if result.stream_name == "menu":
+            self.handle_start_gesture(result.gesture)
+        elif result.stream_name == "front":
             self.latest_results["front"] = result
             self.analyze_training_frame()
         elif result.stream_name == "side":
@@ -794,10 +803,43 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def play_current_correction_sound(self, wykryto_postac, plecy_proste, glowa_ok):
         if not wykryto_postac:
             self.play_sound("pose")
-        elif not glowa_ok:
-            self.play_sound("back")
         elif not plecy_proste:
+            self.play_sound("back")
+        elif not glowa_ok:
             self.play_sound("head")
+
+
+    def handle_start_gesture(self, gesture):
+        """Start treningu z menu po utrzymaniu pozycji T przez 3 sekundy."""
+        if self.stackedWidget.currentWidget() != getattr(self, "page_menu", None):
+            self.start_gesture_started_at = None
+            return
+
+        if self._starting_training_from_gesture:
+            return
+
+        if gesture == "T":
+            if self.start_gesture_started_at is None:
+                self.start_gesture_started_at = time.time()
+
+            elapsed = time.time() - self.start_gesture_started_at
+
+            if hasattr(self, "menuSubtitleLabel"):
+                self.menuSubtitleLabel.setText(
+                    f"Rozpoczynanie treningu: {elapsed:.1f}/3.0 s"
+                )
+
+            if elapsed >= 3:
+                self._starting_training_from_gesture = True
+                self.start_gesture_started_at = None
+                self.start_training_safe()
+                self._starting_training_from_gesture = False
+        else:
+            self.start_gesture_started_at = None
+            if hasattr(self, "menuSubtitleLabel"):
+                self.menuSubtitleLabel.setText(
+                    'Kliknij start albo stań w "T" aby rozpocząć trening.'
+                )
 
     def handle_stop_gesture(self, gesture):
         if gesture == "S":

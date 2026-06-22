@@ -252,6 +252,8 @@ class CameraWorker(QObject):
         # Komunikatów o błędach postawy nie wypisujemy na obrazie — zostają dźwięki i etykiety UI.
         if gesture == "S":
             self._draw_info(frame, "Gest: S")
+        elif gesture == "T":
+            self._draw_info(frame, "Gest: T")
         elif gesture == "working on it":
             _, part, _ = self._get_training_context()
             self._draw_info(frame, f"Etap: {part}")

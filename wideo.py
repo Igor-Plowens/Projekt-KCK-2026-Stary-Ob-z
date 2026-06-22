@@ -28,8 +28,19 @@ def _dist(a, b):
 def _mid(a, b):
     return ((a.x + b.x) / 2.0, (a.y + b.y) / 2.0)
 
+
+def _angle(a, b):
+    """KÄ…t od punktu b do punktu a, w stopniach."""
+    return math.degrees(math.atan2(a.y - b.y, a.x - b.x))
+
+
+def _angle_diff(a, b):
+    diff = abs((a - b + 180) % 360 - 180)
+    return diff
+
+
 def _best_side(landmarks):
-    """Wybiera lewa albo prawa strone ciala, ktora jest lepiej widoczna z kamery bocznej."""
+    """Wybiera lewÄ… albo prawÄ… stronÄ™ ciaĹ‚a, ktĂłra jest lepiej widoczna z kamery bocznej."""
     left_names = ["LEFT_EAR", "LEFT_SHOULDER", "LEFT_HIP", "LEFT_KNEE"]
     right_names = ["RIGHT_EAR", "RIGHT_SHOULDER", "RIGHT_HIP", "RIGHT_KNEE"]
 
@@ -45,7 +56,7 @@ def angle(a, b):
 
 
 def angle_3p(a, b, c):
-    """Kat ABC w stopniach."""
+    """KÄ…t ABC w stopniach."""
     a = np.array([a.x, a.y])
     b = np.array([b.x, b.y])
     c = np.array([c.x, c.y])
@@ -54,6 +65,14 @@ def angle_3p(a, b, c):
     if deg > 180:
         deg = 360 - deg
     return deg
+
+
+def is_horizontal(a, b, tolerance=0.07):
+    return abs(a.y - b.y) < tolerance
+
+
+def is_vertical(a, b, tolerance=0.12):
+    return abs(a.x - b.x) < tolerance
 
 
 def check_widoczna_postac(landmarks, min_visibility=0.5):
@@ -68,7 +87,7 @@ def check_widoczna_postac(landmarks, min_visibility=0.5):
 def check_brak_pochylenia_lewo_prawo(landmarks):
     """
     Ocena z kamery przedniej.
-    True oznacza, ze barki i biodra sa prawie poziomo, a srodek barkow jest nad srodkiem bioder.
+    True oznacza, ĹĽe barki i biodra sÄ… prawie poziomo, a Ĺ›rodek barkĂłw jest nad Ĺ›rodkiem bioder.
     """
     potrzebne = ["LEFT_SHOULDER", "RIGHT_SHOULDER", "LEFT_HIP", "RIGHT_HIP"]
     if not _all_visible(landmarks, potrzebne):
@@ -101,8 +120,8 @@ def check_proste_plecy_przod(landmarks):
 def check_proste_plecy_bok(landmarks):
     """
     Ocena z kamery bocznej.
-    MediaPipe nie widzi krzywizny kregoslupa, wiec uzywamy przyblizenia:
-    ucho, bark i biodro powinny tworzyc prawie jedna linia.
+    MediaPipe nie widzi krzywizny krÄ™gosĹ‚upa, wiÄ™c uĹĽywamy przybliĹĽenia:
+    ucho, bark i biodro powinny tworzyÄ‡ prawie jednÄ… liniÄ™.
     """
     side = _best_side(landmarks)
     ear = _lm(landmarks, f"{side}_EAR")
@@ -116,15 +135,15 @@ def check_proste_plecy_bok(landmarks):
     if torso_len < 0.08:
         return False
 
-    # Kat bliski 180 stopni oznacza, ze glowa/szyja, bark i biodro leza na jednej osi.
+    # KÄ…t bliski 180 stopni oznacza, ĹĽe gĹ‚owa/szyja, bark i biodro leĹĽÄ… na jednej osi.
     neck_back_angle = angle_3p(ear, shoulder, hip)
     return neck_back_angle >= 145
 
 
 def check_glowa_ok_przod(landmarks):
     """
-    Awaryjna ocena glowy z kamery przedniej.
-    Nie wykrywa dobrze wysuniecia glowy, ale lapie duze przechylenie w lewo/prawo.
+    Awaryjna ocena gĹ‚owy z kamery przedniej.
+    Nie wykrywa dobrze wysuniÄ™cia gĹ‚owy, ale Ĺ‚apie duĹĽe przechylenie w lewo/prawo.
     """
     potrzebne = ["LEFT_EAR", "RIGHT_EAR", "LEFT_SHOULDER", "RIGHT_SHOULDER", "NOSE"]
     if not _all_visible(landmarks, potrzebne):
@@ -146,8 +165,8 @@ def check_glowa_ok_przod(landmarks):
 
 def check_glowa_ok_bok(landmarks):
     """
-    Ocena z kamery bocznej: glowa nie powinna byc wysunieta przed bark ani mocno pochylona w dol.
-    Kierunek przodu wyznaczamy z relacji nos-ucho, wiec dziala gdy uzytkownik stoi bokiem w lewo albo w prawo.
+    Ocena z kamery bocznej: gĹ‚owa nie powinna byÄ‡ wysuniÄ™ta przed bark ani mocno pochylona w dĂłĹ‚.
+    Kierunek przodu wyznaczamy z relacji nos-ucho, wiÄ™c dziaĹ‚a gdy uĹĽytkownik stoi bokiem w lewo albo w prawo.
     """
     side = _best_side(landmarks)
     ear = _lm(landmarks, f"{side}_EAR")
@@ -162,13 +181,13 @@ def check_glowa_ok_bok(landmarks):
     max_forward = max(0.055, 0.25 * torso_len)
     max_nose_drop = max(0.040, 0.16 * torso_len)
 
-    # Jesli nos jest widoczny, wiemy w ktora strone uzytkownik patrzy.
+    # JeĹ›li nos jest widoczny, wiemy w ktĂłrÄ… stronÄ™ uĹĽytkownik patrzy.
     if _visible(nose, 0.35) and abs(nose.x - ear.x) > 0.01:
         forward_sign = 1 if nose.x > ear.x else -1
         ear_forward = (ear.x - shoulder.x) * forward_sign
         nose_drop = nose.y - ear.y
     else:
-        # Fallback: bez nosa sprawdzamy tylko, czy ucho nie ucieklo daleko od barku.
+        # Fallback: bez nosa sprawdzamy tylko, czy ucho nie uciekĹ‚o daleko od barku.
         ear_forward = abs(ear.x - shoulder.x)
         nose_drop = 0
 
@@ -181,8 +200,8 @@ def check_glowa_ok_bok(landmarks):
 
 def check_brak_zgarbienia(landmarks):
     """
-    Zostawione dla zgodnosci ze starszym kodem.
-    Teraz oznacza: glowa z boku nie jest wysunieta do przodu ani pochylona w dol.
+    Zostawione dla zgodnoĹ›ci ze starszym kodem.
+    Teraz oznacza: gĹ‚owa z boku nie jest wysuniÄ™ta do przodu ani pochylona w dĂłĹ‚.
     """
     return check_glowa_ok_bok(landmarks)
 
@@ -221,7 +240,7 @@ def check_podniesienie_przedmiotu_z_ziemi(landmarks):
 
 def is_diagonal_up(a, b, tolerance=40):
     ang = angle(a, b)
-    # Dopuszczalne katy: 25-75 lub -155--105.
+    # Dopuszczalne kÄ…ty: 25-75 lub -155--105.
     return (25 < ang < 75) or (-155 < ang < -105)
 
 
@@ -259,6 +278,61 @@ def pierwsze(landmarks, part):
     return "working on it"
 
 
+
+
+def detect_t_pose(landmarks):
+    """
+    Wykrywa pozycję T tylko z górnej części ciała.
+    Dzięki temu działa też w menu, gdy kamera nie widzi bioder albo kolan.
+    """
+    needed = [
+        "LEFT_SHOULDER", "RIGHT_SHOULDER",
+        "LEFT_ELBOW", "RIGHT_ELBOW",
+        "LEFT_WRIST", "RIGHT_WRIST",
+    ]
+
+    if not _all_visible(landmarks, needed, min_visibility=0.35):
+        return False
+
+    left_shoulder = _lm(landmarks, "LEFT_SHOULDER")
+    right_shoulder = _lm(landmarks, "RIGHT_SHOULDER")
+    left_elbow = _lm(landmarks, "LEFT_ELBOW")
+    right_elbow = _lm(landmarks, "RIGHT_ELBOW")
+    left_wrist = _lm(landmarks, "LEFT_WRIST")
+    right_wrist = _lm(landmarks, "RIGHT_WRIST")
+
+    shoulder_width = max(abs(right_shoulder.x - left_shoulder.x), 0.08)
+    shoulder_mid_x = (left_shoulder.x + right_shoulder.x) / 2.0
+    shoulder_mid_y = (left_shoulder.y + right_shoulder.y) / 2.0
+
+    elbows_near_shoulders = (
+        abs(left_elbow.y - shoulder_mid_y) < 0.16
+        and abs(right_elbow.y - shoulder_mid_y) < 0.16
+    )
+    wrists_near_shoulders = (
+        abs(left_wrist.y - shoulder_mid_y) < 0.22
+        and abs(right_wrist.y - shoulder_mid_y) < 0.22
+    )
+
+    left_wrist_far = abs(left_wrist.x - shoulder_mid_x) > 0.55 * shoulder_width
+    right_wrist_far = abs(right_wrist.x - shoulder_mid_x) > 0.55 * shoulder_width
+
+    left_arm_extended = abs(left_wrist.x - shoulder_mid_x) > abs(left_elbow.x - shoulder_mid_x)
+    right_arm_extended = abs(right_wrist.x - shoulder_mid_x) > abs(right_elbow.x - shoulder_mid_x)
+
+    wrists_on_opposite_sides = (left_wrist.x - shoulder_mid_x) * (right_wrist.x - shoulder_mid_x) < 0
+
+    return (
+        elbows_near_shoulders
+        and wrists_near_shoulders
+        and left_wrist_far
+        and right_wrist_far
+        and left_arm_extended
+        and right_arm_extended
+        and wrists_on_opposite_sides
+    )
+
+
 def detect_training_state(landmarks, excercise, part):
     left_shoulder = _lm(landmarks, "LEFT_SHOULDER")
     right_shoulder = _lm(landmarks, "RIGHT_SHOULDER")
@@ -266,28 +340,30 @@ def detect_training_state(landmarks, excercise, part):
     right_elbow = _lm(landmarks, "RIGHT_ELBOW")
     left_wrist = _lm(landmarks, "LEFT_WRIST")
     right_wrist = _lm(landmarks, "RIGHT_WRIST")
-    left_hip = _lm(landmarks, "LEFT_HIP")
-    right_hip = _lm(landmarks, "RIGHT_HIP")
-    left_knee = _lm(landmarks, "LEFT_KNEE")
-    right_knee = _lm(landmarks, "RIGHT_KNEE")
 
-    needed = [left_shoulder, right_shoulder, left_elbow, right_elbow, left_wrist, right_wrist, left_hip, right_hip, left_knee, right_knee]
-    if any(not _visible(point) for point in needed):
+    # T sprawdzamy przed biodrami i kolanami, bo na ekranie menu kamera
+    # często widzi tylko górną część sylwetki.
+    if detect_t_pose(landmarks):
+        letter = "T"
+        history.append(letter)
+        return max(set(history), key=history.count)
+
+    needed_upper = [
+        left_shoulder,
+        right_shoulder,
+        left_elbow,
+        right_elbow,
+        left_wrist,
+        right_wrist,
+    ]
+    if any(not _visible(point) for point in needed_upper):
         return "N"
-
-    def wrist_elbow_angle(wrist, elbow):
-        dx = wrist.x - elbow.x
-        dy = wrist.y - elbow.y
-        return abs(math.degrees(math.atan2(dy, dx)))
 
     left_half_down = left_wrist.y < left_elbow.y and abs(left_elbow.y - left_shoulder.y) < 0.1
     right_half_up = right_wrist.y > right_elbow.y and abs(right_elbow.y - right_shoulder.y) < 0.1
-    left_diagonal = left_wrist.y < left_elbow.y and wrist_elbow_angle(left_wrist, left_elbow) > 15
-    right_diagonal = right_wrist.y < right_elbow.y and wrist_elbow_angle(right_wrist, right_elbow) > 15
 
     letter = ""
 
-    # Stop.
     stop = left_half_down and right_half_up
     if stop:
         letter = "S"
@@ -296,7 +372,6 @@ def detect_training_state(landmarks, excercise, part):
 
     history.append(letter)
     return max(set(history), key=history.count)
-
 
 
 # =====================================================
