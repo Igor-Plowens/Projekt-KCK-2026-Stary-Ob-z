@@ -61,31 +61,129 @@ def is_vertical(a, b, tolerance=0.12):
     return abs(a.x - b.x) < tolerance
 
 
+def check_widoczna_postac(landmarks, min_visibility=0.5):
+    potrzebne = [
+        "LEFT_SHOULDER", "RIGHT_SHOULDER",
+        "LEFT_HIP", "RIGHT_HIP",
+        "LEFT_KNEE", "RIGHT_KNEE",
+    ]
+    return _all_visible(landmarks, potrzebne, min_visibility)
+
 def check_brak_pochylenia_lewo_prawo(landmarks):
-    left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER]
-    right_shoulder = landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER]
-    left_hip = landmarks[mp_pose.PoseLandmark.LEFT_HIP]
-    right_hip = landmarks[mp_pose.PoseLandmark.RIGHT_HIP]
+    """
+    Ocena z kamery przedniej.
+    True oznacza, ze barki i biodra sa prawie poziomo, a srodek barkow jest nad srodkiem bioder.
+    """
+    potrzebne = ["LEFT_SHOULDER", "RIGHT_SHOULDER", "LEFT_HIP", "RIGHT_HIP"]
+    if not _all_visible(landmarks, potrzebne):
+        return False
 
-    # Sprawdzamy pionowość linii ramiona-biodra
-    left_side_vertical = is_vertical(left_shoulder, left_hip, 0.1)
-    right_side_vertical = is_vertical(right_shoulder, right_hip, 0.1)
+    left_shoulder = _lm(landmarks, "LEFT_SHOULDER")
+    right_shoulder = _lm(landmarks, "RIGHT_SHOULDER")
+    left_hip = _lm(landmarks, "LEFT_HIP")
+    right_hip = _lm(landmarks, "RIGHT_HIP")
 
-    # Sprawdzamy czy ramiona są w miarę poziomo
-    shoulders_horizontal = is_horizontal(left_shoulder, right_shoulder, 0.05)
+    shoulder_width = max(abs(right_shoulder.x - left_shoulder.x), 0.05)
+    shoulders_horizontal = abs(left_shoulder.y - right_shoulder.y) < 0.07
+    hips_horizontal = abs(left_hip.y - right_hip.y) < 0.09
 
-    return left_side_vertical and right_side_vertical and shoulders_horizontal
+    shoulder_mid_x, _ = _mid(left_shoulder, right_shoulder)
+    hip_mid_x, _ = _mid(left_hip, right_hip)
+    body_centered = abs(shoulder_mid_x - hip_mid_x) < 0.35 * shoulder_width
+
+    left_side_vertical = abs(left_shoulder.x - left_hip.x) < 0.45 * shoulder_width
+    right_side_vertical = abs(right_shoulder.x - right_hip.x) < 0.45 * shoulder_width
+
+    return shoulders_horizontal and hips_horizontal and body_centered and left_side_vertical and right_side_vertical
+
+def check_proste_plecy_przod(landmarks):
+    """Alias czytelniejszy w polaczone.py."""
+    return check_brak_pochylenia_lewo_prawo(landmarks)
+
+def check_proste_plecy_bok(landmarks):
+    """
+    Ocena z kamery bocznej.
+    MediaPipe nie widzi krzywizny kregoslupa, wiec uzywamy przyblizenia:
+    ucho, bark i biodro powinny tworzyc prawie jedna linia.
+    """
+    side = _best_side(landmarks)
+    ear = _lm(landmarks, f"{side}_EAR")
+    shoulder = _lm(landmarks, f"{side}_SHOULDER")
+    hip = _lm(landmarks, f"{side}_HIP")
+
+    if not (_visible(ear) and _visible(shoulder) and _visible(hip)):
+        return False
+
+    torso_len = _dist(shoulder, hip)
+    if torso_len < 0.08:
+        return False
+
+    # Kat bliski 180 stopni oznacza, ze glowa/szyja, bark i biodro leza na jednej osi.
+    neck_back_angle = angle_3p(ear, shoulder, hip)
+    return neck_back_angle >= 145
+
+def check_glowa_ok_przod(landmarks):
+    """
+    Awaryjna ocena glowy z kamery przedniej.
+    Nie wykrywa dobrze wysuniecia glowy, ale lapie duze przechylenie w lewo/prawo.
+    """
+    potrzebne = ["LEFT_EAR", "RIGHT_EAR", "LEFT_SHOULDER", "RIGHT_SHOULDER", "NOSE"]
+    if not _all_visible(landmarks, potrzebne):
+        return False
+
+    left_ear = _lm(landmarks, "LEFT_EAR")
+    right_ear = _lm(landmarks, "RIGHT_EAR")
+    left_shoulder = _lm(landmarks, "LEFT_SHOULDER")
+    right_shoulder = _lm(landmarks, "RIGHT_SHOULDER")
+    nose = _lm(landmarks, "NOSE")
+
+    ears_level = abs(left_ear.y - right_ear.y) < 0.06
+    shoulder_mid_x, _ = _mid(left_shoulder, right_shoulder)
+    shoulder_width = max(abs(right_shoulder.x - left_shoulder.x), 0.05)
+    nose_centered = abs(nose.x - shoulder_mid_x) < 0.40 * shoulder_width
+
+    return ears_level and nose_centered
+
+def check_glowa_ok_bok(landmarks):
+    """
+    Ocena z kamery bocznej: glowa nie powinna byc wysunieta przed bark ani mocno pochylona w dol.
+    Kierunek przodu wyznaczamy z relacji nos-ucho, wiec dziala gdy uzytkownik stoi bokiem w lewo albo w prawo.
+    """
+    side = _best_side(landmarks)
+    ear = _lm(landmarks, f"{side}_EAR")
+    shoulder = _lm(landmarks, f"{side}_SHOULDER")
+    hip = _lm(landmarks, f"{side}_HIP")
+    nose = _lm(landmarks, "NOSE")
+
+    if not (_visible(ear) and _visible(shoulder) and _visible(hip)):
+        return False
+
+    torso_len = max(_dist(shoulder, hip), 0.08)
+    max_forward = max(0.055, 0.25 * torso_len)
+    max_nose_drop = max(0.040, 0.16 * torso_len)
+
+    # Jesli nos jest widoczny, wiemy w ktora strone uzytkownik patrzy.
+    if _visible(nose, 0.35) and abs(nose.x - ear.x) > 0.01:
+        forward_sign = 1 if nose.x > ear.x else -1
+        ear_forward = (ear.x - shoulder.x) * forward_sign
+        nose_drop = nose.y - ear.y
+    else:
+        # Fallback: bez nosa sprawdzamy tylko, czy ucho nie ucieklo daleko od barku.
+        ear_forward = abs(ear.x - shoulder.x)
+        nose_drop = 0
+
+    head_not_forward = ear_forward <= max_forward
+    head_not_down = nose_drop <= max_nose_drop
+    ear_above_shoulder = ear.y < shoulder.y + 0.04
+
+    return head_not_forward and head_not_down and ear_above_shoulder
 
 def check_brak_zgarbienia(landmarks):
-    left_ear = landmarks[mp_pose.PoseLandmark.LEFT_EAR]
-    left_shoulder = landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER]
-
-
-    # Sprawdzamy pionowość linii ucho-ramię
-    left_side_vertical = is_vertical(left_shoulder, left_ear, 0.1)
-
-
-    return left_side_vertical
+    """
+    Zostawione dla zgodnosci ze starszym kodem.
+    Teraz oznacza: glowa z boku nie jest wysunieta do przodu ani pochylona w dol.
+    """
+    return check_glowa_ok_bok(landmarks)
 
 def check_zgiecie_kolan(landmarks):
     pass

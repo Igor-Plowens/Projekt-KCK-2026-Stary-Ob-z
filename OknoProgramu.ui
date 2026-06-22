@@ -100,7 +100,7 @@ QGraphicsView { background-color: #111111; border: none; }</string>
               </widget>
              </item>
              <item>
-              <widget class="QGraphicsView" name="KameraLewa">
+              <widget class="QGraphicsView" name="KameraMenu">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                  <horstretch>0</horstretch>
@@ -109,7 +109,7 @@ QGraphicsView { background-color: #111111; border: none; }</string>
                </property>
                <property name="minimumSize">
                 <size>
-                 <width>640</width>
+                 <width>0</width>
                  <height>0</height>
                 </size>
                </property>
@@ -261,6 +261,24 @@ QGraphicsView { background-color: #111111; border: none; }</string>
                </property>
                <property name="text">
                 <string>Dodaj użytkownika</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="statsButton">
+               <property name="minimumSize">
+                <size>
+                 <width>168</width>
+                 <height>58</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <pointsize>16</pointsize>
+                </font>
+               </property>
+               <property name="text">
+                <string>Statystyki użytkowników</string>
                </property>
               </widget>
              </item>
@@ -716,7 +734,7 @@ QGraphicsView { background-color: #111111; border: none; }</string>
             <property name="frameShape">
              <enum>QFrame::Shape::NoFrame</enum>
             </property>
-            <layout class="QVBoxLayout" name="summaryButtonsLayout">
+            <layout class="QVBoxLayout" name="verticalLayout_2">
              <item>
               <widget class="QPushButton" name="startAgainButton">
                <property name="minimumSize">
@@ -727,6 +745,19 @@ QGraphicsView { background-color: #111111; border: none; }</string>
                </property>
                <property name="text">
                 <string>Rozpocznij ponownie</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="trainingQualityButton">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>46</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Pokaż jakość treningu</string>
                </property>
               </widget>
              </item>
