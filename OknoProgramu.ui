@@ -734,7 +734,7 @@ QGraphicsView { background-color: #111111; border: none; }</string>
             <property name="frameShape">
              <enum>QFrame::Shape::NoFrame</enum>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_2">
+            <layout class="QVBoxLayout" name="summaryButtonsLayout">
              <item>
               <widget class="QPushButton" name="startAgainButton">
                <property name="minimumSize">
@@ -749,7 +749,7 @@ QGraphicsView { background-color: #111111; border: none; }</string>
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="trainingQualityButton">
+              <widget class="QPushButton" name="trainingQualityChartButton">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
