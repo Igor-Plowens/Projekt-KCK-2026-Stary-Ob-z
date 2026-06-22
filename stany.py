@@ -149,82 +149,59 @@ class Stany:
 
         self._status("Wykonuj ćwiczenie.")
 
-    def aktualizuj_ocene_klatki(
-            self,
-            wykryto_postac,
-            plecy_proste,
-            glowa_ok,
-            gest=""
-    ):
+    def aktualizuj_ocene_klatki(self, plecy_proste=True, glowa_ok=True, wykryto_postac=True):
         if self.stan != StanTreningu.CWICZENIE:
             return
 
         self.wszystkie_klatki += 1
 
         if not wykryto_postac:
+            self.brak_sylwetki_klatki += 1
             self.zle_klatki += 1
             self._wyslij_postep()
             return
 
-        liczba_poprawnych_warunkow = 0
+        if not plecy_proste:
+            self.plecy_nieproste_klatki += 1
 
-        if plecy_proste:
-            liczba_poprawnych_warunkow += 1
+        if not glowa_ok:
+            self.glowa_zle_klatki += 1
 
-        if glowa_ok:
-            liczba_poprawnych_warunkow += 1
-
-        if liczba_poprawnych_warunkow == 2:
+        if plecy_proste and glowa_ok:
             self.dobre_klatki += 1
-        elif liczba_poprawnych_warunkow == 1:
+        elif plecy_proste or glowa_ok:
             self.srednie_klatki += 1
         else:
             self.zle_klatki += 1
 
         self._wyslij_postep()
 
-        # if self._czy_czas_cwiczenia_minal():
-        #     self.wyswietl_ocene_wykonania()
-
     def wyswietl_ocene_wykonania(self):
-        self.stan = StanTreningu.OCENA
-
-        czas_trwania = time.time() - self.czas_startu_cwiczenia
-
-        if self.wszystkie_klatki == 0:
-            procent = 0
-        else:
-            procent = (self.dobre_klatki / self.wszystkie_klatki) * 100
-
-        poprawnie_wykonane = procent >= self.minimalny_procent_poprawnosci
-
         wynik = WynikCwiczenia(
-            nazwa_cwiczenia=self.aktualne_cwiczenie.nazwa,
-            czas_trwania=czas_trwania,
+            nazwa_cwiczenia=self.aktualne_cwiczenie.nazwa if self.aktualne_cwiczenie else "Ćwiczenie",
             dobre_klatki=self.dobre_klatki,
             srednie_klatki=self.srednie_klatki,
+            zle_klatki=self.zle_klatki,
             wszystkie_klatki=self.wszystkie_klatki,
-            poprawnosc=self.poprawnie_wykonane
+            powtorzenia=self.powtorzenia,
+            wymagane_powtorzenia=self.wymagane_powtorzenia,
+            plecy_nieproste_klatki=self.plecy_nieproste_klatki,
+            glowa_zle_klatki=self.glowa_zle_klatki,
+            brak_sylwetki_klatki=self.brak_sylwetki_klatki,
         )
 
         self.ostatni_wynik = wynik
-        self.wyniki.append(wynik)
+        self.wyniki_cwiczen.append(wynik)
 
-        if poprawnie_wykonane:
-            self._status(
-                f"Ćwiczenie wykonane poprawnie.\n"
-                f"Poprawność: {procent:.1f}%"
-            )
-        else:
-            self._status(
-                f"Ćwiczenie wymaga poprawy.\n"
-                f"Poprawność: {procent:.1f}%"
-            )
+        self._status(
+            f"Wynik: {wynik.poprawnosc:.1f}% | "
+            f"Powtórzenia: {wynik.powtorzenia}/{wynik.wymagane_powtorzenia}"
+        )
 
-        if self.on_result:
-            self.on_result(wynik)
+        for komentarz in wynik.komentarze_postawy():
+            self._status(komentarz)
 
-        return poprawnie_wykonane
+        return wynik.successful
 
     def pytanie_o_powtorzenie_wybranego_cwiczenia(self):
 
@@ -252,7 +229,9 @@ class Stany:
             dobre=self.dobre_klatki,
             srednie=self.srednie_klatki,
             zle=self.zle_klatki,
-            wszystkie=self.wszystkie_klatki
+            wszystkie=self.wszystkie_klatki,
+            powtorzenia=self.powtorzenia,
+            wymagane_powtorzenia=self.wymagane_powtorzenia
         )
 
     def resetuj_liczniki(self):
@@ -260,3 +239,16 @@ class Stany:
         self.srednie_klatki = 0
         self.zle_klatki = 0
         self.wszystkie_klatki = 0
+        self.powtorzenia = 0
+        self.plecy_nieproste_klatki = 0
+        self.glowa_zle_klatki = 0
+        self.brak_sylwetki_klatki = 0
+
+    def zarejestruj_powtorzenie(self):
+        if self.stan != StanTreningu.CWICZENIE:
+            return False
+
+        self.powtorzenia += 1
+        self._wyslij_postep()
+
+        return self.wymagane_powtorzenia > 0 and self.powtorzenia >= self.wymagane_powtorzenia
