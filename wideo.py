@@ -1,12 +1,51 @@
 import math
 from collections import deque
 import mediapipe as mp
+import numpy as np
 import time
 
 mp_pose = mp.solutions.pose
 history = deque(maxlen=5)
+_history_letter = deque(maxlen=5)
+
+def _lm(landmarks, name):
+    return landmarks[getattr(mp_pose.PoseLandmark, name).value]
 
 
+def _visible(point, min_visibility=0.5):
+    return getattr(point, "visibility", 1.0) >= min_visibility
+
+
+def _all_visible(landmarks, names, min_visibility=0.5):
+    return all(_visible(_lm(landmarks, name), min_visibility) for name in names)
+
+
+def _dist(a, b):
+    return math.hypot(a.x - b.x, a.y - b.y)
+
+
+def _mid(a, b):
+    return ((a.x + b.x) / 2.0, (a.y + b.y) / 2.0)
+
+def _best_side(landmarks):
+    """Wybiera lewa albo prawa strone ciala, ktora jest lepiej widoczna z kamery bocznej."""
+    left_names = ["LEFT_EAR", "LEFT_SHOULDER", "LEFT_HIP", "LEFT_KNEE"]
+    right_names = ["RIGHT_EAR", "RIGHT_SHOULDER", "RIGHT_HIP", "RIGHT_KNEE"]
+
+    left_score = sum(getattr(_lm(landmarks, name), "visibility", 1.0) for name in left_names)
+    right_score = sum(getattr(_lm(landmarks, name), "visibility", 1.0) for name in right_names)
+    return "LEFT" if left_score >= right_score else "RIGHT"
+
+def angle_3p(a, b, c):
+    """Kat ABC w stopniach."""
+    a = np.array([a.x, a.y])
+    b = np.array([b.x, b.y])
+    c = np.array([c.x, c.y])
+    radians = np.arctan2(c[1] - b[1], c[0] - b[0]) - np.arctan2(a[1] - b[1], a[0] - b[0])
+    deg = abs(math.degrees(radians))
+    if deg > 180:
+        deg = 360 - deg
+    return deg
 
 def angle(a, b):
     dx = a.x - b.x
