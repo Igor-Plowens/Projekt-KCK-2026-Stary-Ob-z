@@ -15,7 +15,9 @@ class StanTreningu(Enum):
 @dataclass
 class Cwiczenie:
     nazwa: str
-    wymagane_powtorzenia: int
+    wymagane_powtorzenia: int = 3
+    czas_trwania: int = 30
+    opis: str = "Wykonaj ćwiczenie spokojnie, utrzymując prawidłową postawę."
 
 
 @dataclass
@@ -25,10 +27,36 @@ class WynikCwiczenia:
     wszystkie_klatki: int
     dobre_klatki: int
     srednie_klatki: int
+    zle_klatki: int = 0
+    powtorzenia: int = 0
+    wymagane_powtorzenia: int = 0
+    plecy_nieproste_klatki: int = 0
+    glowa_zle_klatki: int = 0
+    brak_sylwetki_klatki: int = 0
 
     @property
     def poprawnosc(self):
-        return (self.dobre_klatki + 1 / 2 * self.srednie_klatki) / self.wszystkie_klatki * 100
+        if self.wszystkie_klatki == 0:
+            return 0.0
+        return (self.dobre_klatki + 0.5 * self.srednie_klatki) / self.wszystkie_klatki * 100
+
+    @property
+    def successful(self):
+        return self.poprawnosc >= 70 and (
+                self.wymagane_powtorzenia <= 0 or self.powtorzenia >= self.wymagane_powtorzenia
+        )
+
+    def komentarze_postawy(self):
+        if self.wszystkie_klatki == 0:
+            return ["Nie zebrano klatek treningu."]
+
+        plecy = self.plecy_nieproste_klatki / self.wszystkie_klatki * 100
+        glowa = self.glowa_zle_klatki / self.wszystkie_klatki * 100
+
+        return [
+            "Plecy: bardzo dobrze." if plecy < 10 else "Plecy: pilnuj prostego tułowia i uginaj kolana.",
+            "Głowa: bardzo dobrze." if glowa < 10 else "Głowa: nie wysuwaj jej do przodu i nie patrz stale w dół.",
+        ]
 
 
 class Stany:
@@ -101,7 +129,6 @@ class Stany:
 
     def rozpocznij_cwiczenie(self):
         self.przechwytuj_wykonywanie_cwiczenia()
-
 
     def przechwytuj_wykonywanie_cwiczenia(self):
         if self.aktualne_cwiczenie is None:

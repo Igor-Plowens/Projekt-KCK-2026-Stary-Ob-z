@@ -2,7 +2,7 @@ import sys
 import os
 import cv2
 import mediapipe as mp
-from wideo import detect_letter, check_brak_pochylenia_lewo_prawo, check_brak_zgarbienia
+from wideo import check_brak_pochylenia_lewo_prawo, check_brak_zgarbienia
 from wideo import start
 import time
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGraphicsScene
