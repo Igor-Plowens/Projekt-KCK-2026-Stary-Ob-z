@@ -185,16 +185,36 @@ def check_brak_zgarbienia(landmarks):
     """
     return check_glowa_ok_bok(landmarks)
 
-def check_zgiecie_kolan(landmarks):
-    pass
+def check_zgiecie_kolan(landmarks, min_angle=70, max_angle=165):
+    if not _all_visible(landmarks, ["LEFT_HIP", "LEFT_KNEE", "LEFT_ANKLE", "RIGHT_HIP", "RIGHT_KNEE", "RIGHT_ANKLE"]):
+        return False
 
-def check_brak_skretu_tulowia(landmarks):
-    pass
+    lk = angle_3p(_lm(landmarks, "LEFT_HIP"), _lm(landmarks, "LEFT_KNEE"), _lm(landmarks, "LEFT_ANKLE"))
+    rk = angle_3p(_lm(landmarks, "RIGHT_HIP"), _lm(landmarks, "RIGHT_KNEE"), _lm(landmarks, "RIGHT_ANKLE"))
+    return (min_angle <= lk <= max_angle) or (min_angle <= rk <= max_angle)
+
+
+def check_brak_skretu_tulowia(landmarks, tolerance=0.12):
+    if not _all_visible(landmarks, ["LEFT_SHOULDER", "RIGHT_SHOULDER", "LEFT_HIP", "RIGHT_HIP"]):
+        return False
+
+    ls = _lm(landmarks, "LEFT_SHOULDER")
+    rs = _lm(landmarks, "RIGHT_SHOULDER")
+    lh = _lm(landmarks, "LEFT_HIP")
+    rh = _lm(landmarks, "RIGHT_HIP")
+
+    barki_nachylenie = ls.y - rs.y
+    biodra_nachylenie = lh.y - rh.y
+    return abs(barki_nachylenie - biodra_nachylenie) < tolerance
+
 
 def check_podniesienie_przedmiotu_z_ziemi(landmarks):
-    check_brak_zgarbienia(landmarks) and check_brak_pochylenia_lewo_prawo(landmarks) and check_brak_skretu_tulowia(
-        landmarks) and check_zgiecie_kolan(landmarks)
-    pass
+    return (
+        check_widoczna_postac(landmarks)
+        and check_proste_plecy_przod(landmarks)
+        and check_brak_skretu_tulowia(landmarks)
+        and check_zgiecie_kolan(landmarks)
+    )
 
 
 
