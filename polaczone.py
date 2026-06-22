@@ -794,9 +794,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def play_current_correction_sound(self, wykryto_postac, plecy_proste, glowa_ok):
         if not wykryto_postac:
             self.play_sound("pose")
-        elif not plecy_proste:
-            self.play_sound("back")
         elif not glowa_ok:
+            self.play_sound("back")
+        elif not plecy_proste:
             self.play_sound("head")
 
     def handle_stop_gesture(self, gesture):
