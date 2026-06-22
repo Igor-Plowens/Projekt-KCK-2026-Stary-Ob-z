@@ -1,5 +1,5 @@
 import sqlite3
-
+from datetime import datetime
 
 class CyberTrainerDB:
     def __init__(self, db_path="fitness.db"):
@@ -8,6 +8,7 @@ class CyberTrainerDB:
         self.conn.execute("PRAGMA foreign_keys = ON")
 
         self.create_tables()
+        self.ensure_default_data()
 
     def create_tables(self):
         self.conn.executescript("""
@@ -196,6 +197,15 @@ class CyberTrainerDB:
             "SELECT user_id, username, display_name FROM users ORDER BY username"
         )
         return [dict(row) for row in cur.fetchall()]
+
+    def ensure_default_datw(self):
+        self.get_or_create_user("XYZ", "XYZ")
+        self.get_or_create_exercise_definition(
+            exercise_type_name="Podnoszenie przedmiotu",
+            exercise_name="Podnoszenie przedmiotu z podłogi na stół",
+        )
+
+
 
     def get_usernames(self):
         return [row["username"] for row in self.fetch_users()]
