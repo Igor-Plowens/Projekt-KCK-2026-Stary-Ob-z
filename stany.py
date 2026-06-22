@@ -177,8 +177,12 @@ class Stany:
         self._wyslij_postep()
 
     def wyswietl_ocene_wykonania(self):
+        czas_trwania = 0.0
+        if self.czas_startu_cwiczenia is not None:
+            czas_trwania = time.time() - self.czas_startu_cwiczenia
         wynik = WynikCwiczenia(
             nazwa_cwiczenia=self.aktualne_cwiczenie.nazwa if self.aktualne_cwiczenie else "Ćwiczenie",
+            czas_trwania=czas_trwania,
             dobre_klatki=self.dobre_klatki,
             srednie_klatki=self.srednie_klatki,
             zle_klatki=self.zle_klatki,
