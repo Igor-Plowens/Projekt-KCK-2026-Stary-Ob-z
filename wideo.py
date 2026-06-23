@@ -30,7 +30,7 @@ def _mid(a, b):
 
 
 def _angle(a, b):
-    """KÄ…t od punktu b do punktu a, w stopniach."""
+    """Kat od punktu b do punktu a, w stopniach."""
     return math.degrees(math.atan2(a.y - b.y, a.x - b.x))
 
 
@@ -40,7 +40,7 @@ def _angle_diff(a, b):
 
 
 def _best_side(landmarks):
-    """Wybiera lewÄ… albo prawÄ… stronÄ™ ciaĹ‚a, ktĂłra jest lepiej widoczna z kamery bocznej."""
+    """Wybiera lewa albo prawa strone ciala, ktora jest lepiej widoczna z kamery bocznej."""
     left_names = ["LEFT_EAR", "LEFT_SHOULDER", "LEFT_HIP", "LEFT_KNEE"]
     right_names = ["RIGHT_EAR", "RIGHT_SHOULDER", "RIGHT_HIP", "RIGHT_KNEE"]
 
@@ -56,7 +56,7 @@ def angle(a, b):
 
 
 def angle_3p(a, b, c):
-    """KÄ…t ABC w stopniach."""
+    """Kat ABC w stopniach."""
     a = np.array([a.x, a.y])
     b = np.array([b.x, b.y])
     c = np.array([c.x, c.y])
@@ -87,7 +87,7 @@ def check_widoczna_postac(landmarks, min_visibility=0.5):
 def check_brak_pochylenia_lewo_prawo(landmarks):
     """
     Ocena z kamery przedniej.
-    True oznacza, ĹĽe barki i biodra sÄ… prawie poziomo, a Ĺ›rodek barkĂłw jest nad Ĺ›rodkiem bioder.
+    True oznacza, ze barki i biodra sa prawie poziomo, a srodek barkow jest nad srodkiem bioder.
     """
     potrzebne = ["LEFT_SHOULDER", "RIGHT_SHOULDER", "LEFT_HIP", "RIGHT_HIP"]
     if not _all_visible(landmarks, potrzebne):
@@ -120,8 +120,8 @@ def check_proste_plecy_przod(landmarks):
 def check_proste_plecy_bok(landmarks):
     """
     Ocena z kamery bocznej.
-    MediaPipe nie widzi krzywizny krÄ™gosĹ‚upa, wiÄ™c uĹĽywamy przybliĹĽenia:
-    ucho, bark i biodro powinny tworzyÄ‡ prawie jednÄ… liniÄ™.
+    MediaPipe nie widzi krzywizny kregoslupa, wiec uzywamy przyblizenia:
+    ucho, bark i biodro powinny tworzyc prawie jedna linie.
     """
     side = _best_side(landmarks)
     ear = _lm(landmarks, f"{side}_EAR")
@@ -135,15 +135,15 @@ def check_proste_plecy_bok(landmarks):
     if torso_len < 0.08:
         return False
 
-    # KÄ…t bliski 180 stopni oznacza, ĹĽe gĹ‚owa/szyja, bark i biodro leĹĽÄ… na jednej osi.
+    # Kat bliski 180 stopni oznacza, ze glowa/szyja, bark i biodro leza na jednej osi.
     neck_back_angle = angle_3p(ear, shoulder, hip)
     return neck_back_angle >= 145
 
 
 def check_glowa_ok_przod(landmarks):
     """
-    Awaryjna ocena gĹ‚owy z kamery przedniej.
-    Nie wykrywa dobrze wysuniÄ™cia gĹ‚owy, ale Ĺ‚apie duĹĽe przechylenie w lewo/prawo.
+    Awaryjna ocena glowy z kamery przedniej.
+    Nie wykrywa dobrze wysuniecia glowy, ale lapie duze przechylenie w lewo/prawo.
     """
     potrzebne = ["LEFT_EAR", "RIGHT_EAR", "LEFT_SHOULDER", "RIGHT_SHOULDER", "NOSE"]
     if not _all_visible(landmarks, potrzebne):
@@ -165,8 +165,8 @@ def check_glowa_ok_przod(landmarks):
 
 def check_glowa_ok_bok(landmarks):
     """
-    Ocena z kamery bocznej: gĹ‚owa nie powinna byÄ‡ wysuniÄ™ta przed bark ani mocno pochylona w dĂłĹ‚.
-    Kierunek przodu wyznaczamy z relacji nos-ucho, wiÄ™c dziaĹ‚a gdy uĹĽytkownik stoi bokiem w lewo albo w prawo.
+    Ocena z kamery bocznej: glowa nie powinna byc wysunieta przed bark ani mocno pochylona w dol.
+    Kierunek przodu wyznaczamy z relacji nos-ucho, wiec dziala gdy uzytkownik stoi bokiem w lewo albo w prawo.
     """
     side = _best_side(landmarks)
     ear = _lm(landmarks, f"{side}_EAR")
@@ -181,13 +181,13 @@ def check_glowa_ok_bok(landmarks):
     max_forward = max(0.055, 0.25 * torso_len)
     max_nose_drop = max(0.040, 0.16 * torso_len)
 
-    # JeĹ›li nos jest widoczny, wiemy w ktĂłrÄ… stronÄ™ uĹĽytkownik patrzy.
+    # Jesli nos jest widoczny, wiemy w ktora strone uaytkownik patrzy.
     if _visible(nose, 0.35) and abs(nose.x - ear.x) > 0.01:
         forward_sign = 1 if nose.x > ear.x else -1
         ear_forward = (ear.x - shoulder.x) * forward_sign
         nose_drop = nose.y - ear.y
     else:
-        # Fallback: bez nosa sprawdzamy tylko, czy ucho nie uciekĹ‚o daleko od barku.
+        # Fallback: bez nosa sprawdzamy tylko, czy ucho nie ucieklo daleko od barku.
         ear_forward = abs(ear.x - shoulder.x)
         nose_drop = 0
 
@@ -200,8 +200,8 @@ def check_glowa_ok_bok(landmarks):
 
 def check_brak_zgarbienia(landmarks):
     """
-    Zostawione dla zgodnoĹ›ci ze starszym kodem.
-    Teraz oznacza: gĹ‚owa z boku nie jest wysuniÄ™ta do przodu ani pochylona w dĂłĹ‚.
+    Zostawione dla zgodnosci ze starszym kodem.
+    Teraz oznacza: glowa z boku nie jest wysunieta do przodu ani pochylona w dol.
     """
     return check_glowa_ok_bok(landmarks)
 
@@ -240,7 +240,7 @@ def check_podniesienie_przedmiotu_z_ziemi(landmarks):
 
 def is_diagonal_up(a, b, tolerance=40):
     ang = angle(a, b)
-    # Dopuszczalne kÄ…ty: 25-75 lub -155--105.
+    # Dopuszczalne katy: 25-75 lub -155--105.
     return (25 < ang < 75) or (-155 < ang < -105)
 
 
